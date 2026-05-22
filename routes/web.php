@@ -4,6 +4,11 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\JobController;
 
+Route::get('/run-migration', function () {
+    \Artisan::call('migrate --force');
+    return "Database migrated successfully!";
+});
+
 Route::get('/', function () {
     return view('welcome');
 
