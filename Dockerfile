@@ -3,41 +3,45 @@ FROM php:8.2-cli
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
+    curl \
     unzip \
     zip \
     sqlite3 \
     libsqlite3-dev \
-    curl
+    libzip-dev
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo pdo_sqlite
+RUN docker-php-ext-install \
+    pdo \
+    pdo_sqlite \
+    zip
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /app
 
-# Copy project files
+# Copy all project files
 COPY . .
 
-# Install Laravel dependencies
-RUN composer install --no-dev --optimize-autoloader
-
 # Create SQLite database
-RUN touch database/database.sqlite
+RUN mkdir -p database && touch database/database.sqlite
 
-# Set permissions
-RUN chmod -R 775 storage bootstrap/cache database
+# Install dependencies
+RUN composer install --ignore-platform-reqs --no-dev --optimize-autoloader
 
-# Generate app key
+# Fix permissions
+RUN chmod -R 777 storage bootstrap/cache database
+
+# Generate Laravel key
 RUN php artisan key:generate --force
 
-# Cache Laravel config
-RUN php artisan config:cache
+# Cache config
+RUN php artisan config:cache || true
 
-# Expose port
+# Expose Render port
 EXPOSE 10000
 
-# Start Laravel server
+# Start Laravel
 CMD php artisan serve --host=0.0.0.0 --port=10000
